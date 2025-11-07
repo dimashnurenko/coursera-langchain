@@ -1,0 +1,22 @@
+# Core LangChain dependencies
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.0.10
+langchain-openai>=0.0.5
+
+# Module 3 specific (RAG and Caching)
+langchain-chroma>=0.1.0
+langchain-text-splitters>=0.0.1
+langchain-classic>=0.1.0
+chromadb>=0.4.0
+redis>=5.0.0
+
+# OpenAI and utilities
+openai>=1.0.0
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+tiktoken>=0.5.0
+
+# Testing (Module 2)
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
