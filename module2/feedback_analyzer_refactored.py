@@ -43,11 +43,18 @@ By passing components as parameters (dependency injection), you make the system
 configurable at runtime and easier to mock for testing, while also making
 dependencies explicit and visible in the code.
 """
+import logging
+
 from dotenv import load_dotenv
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_openai import ChatOpenAI
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 # loads OPENAI_API_KEY from .env
 load_dotenv()
@@ -91,10 +98,8 @@ class CustomerFeedbackAnalyzer:
     def __init__(self,
                  output: CustomerFeedbackOutput,
                  prompt_provider: PromptProvider,
-                 llm_model="gpt-4-turbo",
-                 temperature=0.3):
+                 llm_model):
         self.llm_model = llm_model
-        self.temperature = temperature
         self.output = output
         self.prompt_provider = prompt_provider
 
@@ -107,11 +112,18 @@ class CustomerFeedbackAnalyzer:
             partial_variables={"format_instructions": self.output.get_output_instructions()}
         )
 
-        model = ChatOpenAI(model=self.llm_model, temperature=self.temperature)
-        chain = prompt_template | model | self.output.get_output_parser()
+        chain = prompt_template | self.llm_model | self.output.get_output_parser()
 
-        result = chain.invoke({"feedback_text": feedback_text})
-        return result
+        try:
+            result = chain.invoke({"feedback_text": feedback_text})
+            return result
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error analyzing feedback: {str(e)}")
+            return {
+                "sentiment": 0,
+                "category": "Unknown"
+            }
 
 
 if __name__ == "__main__":
@@ -119,8 +131,11 @@ if __name__ == "__main__":
     output = CustomerFeedbackOutput(CustomerFeedback)
 
     # set explicitly to show how it might be done
-    feedback_analyzer = CustomerFeedbackAnalyzer(output, prompt_Provider, "gpt-4-turbo", temperature=0.3)
+    model = ChatOpenAI(model="gpt-4-turbo", temperature=0.3)
+    feedback_analyzer = CustomerFeedbackAnalyzer(output, prompt_Provider, model)
     test_feedback = "The new dashboard is confusing and slow to load"
+
+    logger = logging.getLogger(__name__)
     result = feedback_analyzer.analyze_customer_feedback(test_feedback)
-    print(f"Sentiment: {result['sentiment']}")
-    print(f"Category: {result['category']}")
+    logger.info(f"Sentiment: {result['sentiment']}")
+    logger.info(f"Category: {result['category']}")
